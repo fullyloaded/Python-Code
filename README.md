@@ -1,4 +1,4 @@
-# Python-Code
+# Python-Code   TEST
 Networked Power Field: A Case Study on the Dissolution of the Soviet Union (1991)
 
 A political system can be conceptualized as a dynamic network, where nodes represent key actors (e.g., national leaders, military forces, external powers), and edges signify the interactions or relationships between them (e.g., alliances, conflicts, resource exchanges). In the case of the Soviet Union's dissolution in 1991, the interplay of these actors formed a network of power transitions. This analysis employs a networked power field, nonlinear dynamics, and self-organized criticality (SOC) to explain the complex process of the Soviet collapse, while integrating the factor of Soviet financial bankruptcy to enhance the model's realism.
