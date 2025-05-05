@@ -1,0 +1,103 @@
+The code generates two plots related to electrical signals and their frequency domain representation. Let me break down what the code does and confirm its functionality:
+
+Plot 1: Voltage and Current Waveforms
+Purpose: Visualizes the voltage 
+
+V(t)=cos(ωt) and current 
+
+I(t)=Cωsin(ωt) for a capacitor, showing the 90° phase lead of the current.
+
+
+Key Elements:
+
+
+Time array 
+
+
+t spans from 0 to 
+
+
+
+4π with 1000 points.
+
+
+
+Parameters: 
+
+
+ω=1, 
+
+
+
+C=1.
+
+
+
+Voltage 
+
+
+V(t) is a cosine wave, and current 
+
+
+
+I(t) is a sine wave scaled by Cω.
+
+
+
+The plot includes:
+Blue solid line for voltage, red dashed line for current.
+Labels, title, grid, and legend.
+A vertical dotted line at 
+
+t=π/4 with an annotation indicating the point where the voltage (water level) is rising, and the current (water flow) is at its maximum.
+Plot 2: Fourier Transform of a Square Wave
+Purpose: Shows a square wave in the time domain and its frequency spectrum in the frequency domain using the Fourier Transform.
+Key Elements:
+Time array 
+
+t spans from 0 to 4 with 1000 points.
+A square wave is generated using scipy.signal.square with a frequency of 2π.
+
+
+The Fast Fourier Transform (FFT) is computed using np.fft.fft, and only the positive frequencies are shown.
+Subplot 1: Time-domain square wave (blue line).
+Subplot 2: Frequency-domain amplitude spectrum (stem plot), showing the magnitudes of frequency components.
+Execution Notes
+The code uses numpy, matplotlib.pyplot, and scipy.signal. Ensure these libraries are installed (pip install numpy matplotlib scipy).
+The code runs without errors and produces the expected plots:
+Plot 1: A clear visualization of the phase relationship between voltage and current, with the current leading by 90°.
+Plot 2: A time-domain square wave and its frequency spectrum, highlighting the odd harmonics typical of a square wave.
+Suggestions for Improvement (Optional)
+
+
+Plot 1:
+Consider adding phase annotations (e.g., mark the 90° phase difference explicitly).
+Adjust the text position at π/4 for better visibility if it overlaps with the plot.
+
+
+Plot 2:
+Limit the frequency axis to a smaller range (e.g., up to 10 Hz) to focus on dominant harmonics.
+Add a label for the base frequency of the square wave for clarity.
+Consider normalizing the FFT amplitude by the number of samples (V_omega / len(t)) for physical consistency.
+
+Plot 3:
+
+Purpose: Demonstrate Euler’s formula ejθ=cos⁡(θ)+jsin⁡(θ) e^{j \theta} = \cos(\theta) + j \sin(\theta) ejθ=cos(θ)+jsin(θ) in representing the phase difference in circuits (current leading voltage by 90°) and animate the phase evolution of a quantum wave function starting at 45°.
+Content:
+Polar plot (unit circle):
+Blue vector: Voltage V(ω) V(\omega) V(ω), fixed at 0°.
+Red vector: Current I(ω)=jωCV(ω) I(\omega) = j \omega C V(\omega) I(ω)=jωCV(ω), fixed at +90°.
+Dark cyan vector: Quantum wave function phase ej(kx−ωt) e^{j (kx - \omega t)} ej(kx−ωt), rotating from 45°.
+Animation: Quantum vector rotates one full cycle (0 to 2π 2\pi 2π).
+Reservoir illustration: Inset plot showing a sine wave for water level (voltage) and an arrow for water flow (current), labeled with phase lead.
+Annotations: Explain Euler’s formula, phase difference, and quantum phase dynamics in English.
+Visual Elements:
+Unit circle as background, labeled with real (X) and imaginary (Y) axes.
+Vectors with distinct colors and lengths: Voltage (blue, normal), current (red, normal), quantum (dark cyan, shorter).
+Reservoir inset: Sine wave (water level), arrow (water flow), labeled “Flow leads by π/2”.
+GIF output: Animates quantum vector rotation.
+
+
+Plot 4:
+
+The planck_constant_plot.py generates a plot illustrating the relationship between energy and frequency in the quantum world, based on the Planck-Einstein relation E=ℏωE=ℏω, where ℏℏ is the reduced Planck constant. The plot also includes annotations to contextualize the concept in terms of a "quantum reservoir" and contrasts classical and quantum behaviors. However, given your previous issue with Chinese character rendering, you might encounter similar font-related warnings due to the Chinese text in the plot's title, axis labels, and annotations.
