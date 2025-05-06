@@ -4,45 +4,20 @@ Plot 1: Voltage and Current Waveforms
 Purpose: Visualizes the voltage 
 
 V(t)=cos(ωt) and current 
-
 I(t)=Cωsin(ωt) for a capacitor, showing the 90° phase lead of the current.
-
-
 Key Elements:
 
-
 Time array 
-
-
 t spans from 0 to 
-
-
-
 4π with 1000 points.
 
-
-
 Parameters: 
-
-
 ω=1, 
-
-
-
 C=1.
 
-
-
 Voltage 
-
-
 V(t) is a cosine wave, and current 
-
-
-
 I(t) is a sine wave scaled by Cω.
-
-
 
 The plot includes:
 Blue solid line for voltage, red dashed line for current.
@@ -57,7 +32,6 @@ Time array
 
 t spans from 0 to 4 with 1000 points.
 A square wave is generated using scipy.signal.square with a frequency of 2π.
-
 
 The Fast Fourier Transform (FFT) is computed using np.fft.fft, and only the positive frequencies are shown.
 Subplot 1: Time-domain square wave (blue line).
@@ -82,7 +56,7 @@ Consider normalizing the FFT amplitude by the number of samples (V_omega / len(t
 
 Plot 3:
 
-Purpose: Demonstrate Euler’s formula ejθ=cos⁡(θ)+jsin⁡(θ) e^{j \theta} = \cos(\theta) + j \sin(\theta) ejθ=cos(θ)+jsin(θ) in representing the phase difference in circuits (current leading voltage by 90°) and animate the phase evolution of a quantum wave function starting at 45°.
+Demonstrate Euler’s formula ejθ=cos⁡(θ)+jsin⁡(θ) e^{j \theta} = \cos(\theta) + j \sin(\theta) ejθ=cos(θ)+jsin(θ) in representing the phase difference in circuits (current leading voltage by 90°) and animate the phase evolution of a quantum wave function starting at 45°.
 Content:
 Polar plot (unit circle):
 Blue vector: Voltage V(ω) V(\omega) V(ω), fixed at 0°.
