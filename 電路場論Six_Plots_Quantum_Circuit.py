@@ -238,7 +238,7 @@ def 繪製超導量子比特():
     圖表, 軸 = plt.subplots(figsize=(8, 6))
     for n, E in enumerate(能級):
         軸.axhline(E, color='b', linestyle='-', xmin=0.2, xmax=0.8)
-        軸.text(0.85, E, f'$| {n} \rangle$', fontsize=12, verticalalignment='center')
+        軸.text(0.85, E, f'$|{n}\\rangle$', fontsize=12, verticalalignment='center')
     軸.arrow(0.5, 能級[0], 0, 能級[1] - 能級[0], head_width=0.02, head_length=0.1e-24, fc='r', ec='r')
     軸.text(0.55, (能級[0] + 能級[1]) / 2, r'$\omega_{01}$', fontsize=10, color='r')
     
