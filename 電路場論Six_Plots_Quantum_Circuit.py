@@ -10,13 +10,17 @@ import os
 import glob
 import warnings
 
-# 設定中文字型和數學符號字型
+# 設定中文字型
+from matplotlib.font_manager import FontProperties
 try:
+    font_path = 'C:/Windows/Fonts/msyh.ttc'  # Windows 上的 Microsoft YaHei
+    font = FontProperties(fname=font_path, size=10)
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Noto Sans CJK SC', 'DejaVu Sans']
     plt.rcParams['mathtext.fontset'] = 'stix'  # 使用 STIX 渲染數學符號
     plt.rcParams['axes.unicode_minus'] = False  # 確保負號顯示正確
 except Exception as e:
     print(f"警告：無法載入字型，圖表中的中文或數學符號可能無法正確顯示。錯誤：{e}")
+    font = FontProperties(family='DejaVu Sans', size=10)
     plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
     plt.rcParams['mathtext.fontset'] = 'dejavusans'
 
@@ -39,10 +43,10 @@ def 繪製電壓電流():
     軸1.plot(時間, 電流, 'r--', label=r'電流 $I(t) = C \omega \sin(\omega t)$')
     軸1.axvline(np.pi/4, color='k', linestyle=':', label=r'$t = \pi/4$')
     軸1.annotate('電流最大，電壓上升', xy=(np.pi/4, 1), xytext=(np.pi/2, 1.3),
-                 arrowprops=dict(facecolor='black', shrink=0.05))
-    軸1.set_xlabel('時間 (秒)')
-    軸1.set_ylabel('振幅')
-    軸1.set_title('電容器時域波形')
+                 arrowprops=dict(facecolor='black', shrink=0.05), fontproperties=font)
+    軸1.set_xlabel('時間 (秒)', fontproperties=font)
+    軸1.set_ylabel('振幅', fontproperties=font)
+    軸1.set_title('電容器時域波形', fontproperties=font)
     軸1.grid(True)
     軸1.legend()
     
@@ -51,9 +55,9 @@ def 繪製電壓電流():
     插圖時間 = np.linspace(0, 2 * np.pi, 100)
     插圖軸.plot(插圖時間, np.cos(插圖時間), 'b-', label='水位')
     插圖軸.arrow(np.pi/4, 0, 0, 1, head_width=0.1, head_length=0.2, fc='r', ec='r', label='流量')
-    插圖軸.set_title('儲水池類比', fontsize=8)
+    插圖軸.set_title('儲水池類比', fontsize=8, fontproperties=font)
     插圖軸.set_xticks([]); 插圖軸.set_yticks([])
-    插圖軸.text(0.1, 1.0, r'流量領先 $\pi/2$', fontsize=8)
+    插圖軸.text(0.1, 1.0, r'流量領先 $\pi/2$', fontsize=8, fontproperties=font)
     
     # 頻域
     電壓傅立葉 = np.abs(np.fft.fft(電壓))[0:len(電壓)//2]
@@ -61,9 +65,9 @@ def 繪製電壓電流():
     頻率 = np.fft.fftfreq(len(時間), 時間[1] - 時間[0])[0:len(時間)//2]
     軸2.plot(頻率, 電壓傅立葉, 'b-', label='電壓頻譜')
     軸2.plot(頻率, 電流傅立葉, 'r--', label='電流頻譜')
-    軸2.set_xlabel('頻率 (Hz)')
-    軸2.set_ylabel('幅度')
-    軸2.set_title('頻域譜')
+    軸2.set_xlabel('頻率 (Hz)', fontproperties=font)
+    軸2.set_ylabel('幅度', fontproperties=font)
+    軸2.set_title('頻域譜', fontproperties=font)
     軸2.set_xlim(0, 0.5)
     軸2.grid(True)
     軸2.legend()
@@ -83,19 +87,19 @@ def 繪製方波傅立葉():
     
     圖表, (軸1, 軸2) = plt.subplots(2, 1, figsize=(8, 6))
     軸1.plot(方波時間, 方波, 'b-', label='方波 (水位波浪)')
-    軸1.set_xlabel('時間 (秒)')
-    軸1.set_ylabel('振幅')
-    軸1.set_title('時域方波')
+    軸1.set_xlabel('時間 (秒)', fontproperties=font)
+    軸1.set_ylabel('振幅', fontproperties=font)
+    軸1.set_title('時域方波', fontproperties=font)
     軸1.grid(True)
     軸1.legend()
     
     軸2.stem(頻率, 傅立葉幅度, 'b', label='頻率成分')
-    軸2.set_xlabel('頻率 (Hz)')
-    軸2.set_ylabel('幅度')
-    軸2.set_title('頻域譜 (奇次諧波)')
+    軸2.set_xlabel('頻率 (Hz)', fontproperties=font)
+    軸2.set_ylabel('幅度', fontproperties=font)
+    軸2.set_title('頻域譜 (奇次諧波)', fontproperties=font)
     軸2.grid(True)
     軸2.legend()
-    軸2.text(0.5, max(傅立葉幅度) * 0.9, '與量子能級相關 (圖 6)', fontsize=8)
+    軸2.text(0.5, max(傅立葉幅度) * 0.9, '與量子能級相關 (圖 6)', fontsize=8, fontproperties=font)
     
     plt.tight_layout()
     plt.savefig('square_wave_fft.png', dpi=300)
@@ -120,17 +124,17 @@ def 繪製單位圓動畫():
     插圖時間 = np.linspace(0, 2 * np.pi, 100)
     插圖軸.plot(插圖時間, np.cos(插圖時間), 'b-', label='水位')
     插圖軸.arrow(np.pi/4, 0, 0, 1, head_width=0.1, head_length=0.2, fc='r', ec='r', label='流量')
-    插圖軸.set_title('儲水池類比', fontsize=8)
+    插圖軸.set_title('儲水池類比', fontsize=8, fontproperties=font)
     插圖軸.set_xticks([]); 插圖軸.set_yticks([])
-    插圖軸.text(0.1, 1.0, r'流量領先 $\pi/2$', fontsize=8)
+    插圖軸.text(0.1, 1.0, r'流量領先 $\pi/2$', fontsize=8, fontproperties=font)
     
-    軸.set_xlabel('實部')
-    軸.set_ylabel('虛部')
-    軸.set_title(r'尤拉公式: $e^{j\theta} = \cos(\theta) + j \sin(\theta)$')
+    軸.set_xlabel('實部', fontproperties=font)
+    軸.set_ylabel('虛部', fontproperties=font)
+    軸.set_title(r'尤拉公式: $e^{j\theta} = \cos(\theta) + j \sin(\theta)$', fontproperties=font)
     軸.set_xlim(-1.5, 1.5); 軸.set_ylim(-1.5, 1.5)
     軸.grid(True)
     軸.legend()
-    軸.text(0.1, 1.3, '電流比電壓領先 90°。\n量子相位從 45° 開始並演化。', fontsize=10)
+    軸.text(0.1, 1.3, '電流比電壓領先 90°。\n量子相位從 45° 開始並演化。', fontsize=10, fontproperties=font)
     
     def 更新(幀):
         時間值 = 幀
@@ -187,17 +191,17 @@ def 繪製LC共振():
     # LC 共振
     軸1.plot(頻率, 電流幅度, 'b-', label=r'電流幅度 $I = 1/|Z|$')
     軸1.axvline(共振頻率, color='k', linestyle=':', label=r'$f_0 = \frac{1}{2\pi \sqrt{LC}}$')
-    軸1.set_xlabel('頻率 (Hz)')
-    軸1.set_ylabel('電流幅度 (A)')
-    軸1.set_title('LC 共振')
+    軸1.set_xlabel('頻率 (Hz)', fontproperties=font)
+    軸1.set_ylabel('電流幅度 (A)', fontproperties=font)
+    軸1.set_title('LC 共振', fontproperties=font)
     軸1.grid(True)
     軸1.legend()
     
     # 場模態
     軸2.stem(模態, 模態能量, 'b', label=r'能量 $E_n = \hbar \omega (n + \frac{1}{2})$')
-    軸2.set_xlabel('模態 $n$')
-    軸2.set_ylabel('能量 (J)')
-    軸2.set_title('量子場模態能量分布')
+    軸2.set_xlabel('模態 $n$', fontproperties=font)
+    軸2.set_ylabel('能量 (J)', fontproperties=font)
+    軸2.set_title('量子場模態能量分布', fontproperties=font)
     軸2.grid(True)
     軸2.legend()
     
@@ -224,7 +228,7 @@ def 繪製量子電路對照():
     表格.set_fontsize(10)
     表格.scale(1.2, 1.5)
     
-    軸.set_title('量子場 vs 電路場對照表')
+    軸.set_title('量子場 vs 電路場對照表', fontproperties=font)
     plt.tight_layout()
     plt.savefig('quantum_circuit_table.png', dpi=300)
     plt.close()
@@ -244,23 +248,23 @@ def 繪製超導量子比特():
     
     軸.set_xlim(0, 1)
     軸.set_ylim(-0.5e-24, 能級[-1] * 1.2)
-    軸.set_xlabel('示意軸')
-    軸.set_ylabel('能量 (J)')
-    軸.set_title('超導量子比特能階結構')
+    軸.set_xlabel('示意軸', fontproperties=font)
+    軸.set_ylabel('能量 (J)', fontproperties=font)
+    軸.set_title('超導量子比特能階結構', fontproperties=font)
     軸.grid(True, axis='y')
     
     # 插圖：簡化超導電路
-    插圖軸 = 軸.inset_axes([0.1, 0.6, 0.3, 0.3])
+    插圖軸 = 軸.inset_axes([0.1, 0.65, 0.25, 0.25])  # 調整位置和大小
     插圖軸.plot([0, 1], [0, 0], 'k-', lw=2)  # 電路線
-    插圖軸.text(0.5, 0.1, '約瑟夫森結', fontsize=8)
+    插圖軸.text(0.5, 0.05, '約瑟夫森結', fontsize=7, fontproperties=font, ha='center')
     插圖軸.set_xlim(-0.2, 1.2)
     插圖軸.set_ylim(-0.2, 0.3)
     插圖軸.set_xticks([]); 插圖軸.set_yticks([])
-    插圖軸.set_title('超導電路', fontsize=8)
+    插圖軸.set_title('超導電路', fontsize=7, fontproperties=font)
     
-    軸.text(0.1, 能級[-1] * 1.1, '用於量子計算的離散能級', fontsize=10)
+    軸.text(0.1, 能級[-1] * 1.2, '用於量子計算的離散能級', fontsize=9, fontproperties=font)
     
-    plt.tight_layout()
+    plt.tight_layout(pad=2.0, h_pad=2.0, w_pad=2.0)
     plt.savefig('superconducting_qubit.png', dpi=300)
     plt.close()
 
