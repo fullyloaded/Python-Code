@@ -1,0 +1,572 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resonance Field and Sine/Cosine Wave Visualization</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.9/babel.min.js"></script>
+  <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+  <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-black text-white">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, Component } = React;
+
+    // Error Boundary Component
+    class ErrorBoundary extends Component {
+      state = { error: null };
+      static getDerivedStateFromError(error) {
+        return { error: error.message };
+      }
+      render() {
+        if (this.state.error) {
+          return (
+            <div className="text-red-500 p-4">
+              <h1>Error: {this.state.error}</h1>
+              <p>Please check the console for more details.</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    const TrigAnimation = () => {
+      const svgRef = useRef(null);
+      const [theta, setTheta] = useState(0);
+      const [isPlaying, setIsPlaying] = useState(true);
+      const [harmonic, setHarmonic] = useState(3);
+      const [coherenceStatus, setCoherenceStatus] = useState('Pending');
+      const THRESHOLD = 0.7;
+      const MAX_HARMONIC = 10;
+      const TRAIL_LENGTH = 50;
+
+      // Dimensions
+      const width = 800;
+      const height = 600;
+      const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+      const graphWidth = width - margin.left - margin.right;
+      const graphHeight = height - margin.top - margin.bottom - 100;
+      const radius = Math.min(graphWidth, graphHeight) / 4;
+      const circleX = graphWidth / 4;
+      const circleY = graphHeight / 2;
+      const graphX = 2 * circleX;
+
+      // Scales
+      const xScale = d3.scaleLinear()
+        .domain([0, 2 * Math.PI])
+        .range([graphX, width - margin.right]);
+      const yScale = d3.scaleLinear()
+        .domain([-1.2, 1.2])
+        .range([margin.top + graphHeight - radius, margin.top + radius]);
+
+      // Calculate Cn
+      const calculateCn = (theta, n) => {
+        try {
+          let sum = 0;
+          for (let i = 1; i <= n; i++) {
+            sum += Math.cos(i * theta) / i + Math.sin(i * theta) / i;
+          }
+          return (Math.sin(sum) + 1) / 2;
+        } catch (e) {
+          console.error('Error in calculateCn:', e);
+          return 0;
+        }
+      };
+
+      // Feedback correction
+      const applyFeedbackCorrection = (currentCn, currentHarmonic) => {
+        try {
+          if (currentCn >= THRESHOLD) {
+            setCoherenceStatus('Sufficient');
+            console.log(`Coherence sufficient (Cn = ${currentCn.toFixed(2)}), proceeding with inference...`);
+            console.log(`Inference output: theta = ${theta.toFixed(2)}, harmonic = ${currentHarmonic}`);
+            return currentHarmonic;
+          } else {
+            setCoherenceStatus('Insufficient');
+            console.log(`Coherence below threshold (Cn = ${currentCn.toFixed(2)}), increasing harmonic...`);
+            return currentHarmonic < MAX_HARMONIC ? currentHarmonic + 1 : currentHarmonic;
+          }
+        } catch (e) {
+          console.error('Error in applyFeedbackCorrection:', e);
+          return currentHarmonic;
+        }
+      };
+
+      // Animation loop
+      useEffect(() => {
+        let animationId;
+        if (isPlaying) {
+          const animate = () => {
+            setTheta(prevTheta => {
+              try {
+                const newTheta = (prevTheta + 0.01) % (Math.PI * 2);
+                const cnValue = calculateCn(newTheta, harmonic);
+                const newHarmonic = applyFeedbackCorrection(cnValue, harmonic);
+                if (newHarmonic !== harmonic) setHarmonic(newHarmonic);
+                return newTheta;
+              } catch (e) {
+                console.error('Error in animation loop:', e);
+                return prevTheta;
+              }
+            });
+            animationId = requestAnimationFrame(animate);
+          };
+          animationId = requestAnimationFrame(animate);
+        }
+        return () => animationId && cancelAnimationFrame(animationId);
+      }, [isPlaying, harmonic]);
+
+      // Trail management
+      const [sinTrail, setSinTrail] = useState([]);
+      const [cosTrail, setCosTrail] = useState([]);
+      useEffect(() => {
+        try {
+          setSinTrail(prev => {
+            const newPoint = { x: xScale(theta), y: yScale(Math.sin(theta)), theta };
+            return [...prev, newPoint].slice(-TRAIL_LENGTH);
+          });
+          setCosTrail(prev => {
+            const newPoint = { x: xScale(theta), y: yScale(Math.cos(theta)), theta };
+            return [...prev, newPoint].slice(-TRAIL_LENGTH);
+          });
+        } catch (e) {
+          console.error('Error in trail management:', e);
+        }
+      }, [theta]);
+
+      // SVG rendering
+      useEffect(() => {
+        try {
+          const svg = d3.select(svgRef.current);
+          svg.selectAll("*").remove();
+
+          // Background
+          svg.append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("fill", "black");
+
+          // Grid
+          const xGrid = svg.append("g").attr("class", "x-grid");
+          const yGrid = svg.append("g").attr("class", "y-grid");
+          for (let i = 0; i <= 2 * Math.PI; i += Math.PI / 2) {
+            xGrid.append("line")
+              .attr("x1", xScale(i))
+              .attr("y1", margin.top)
+              .attr("x2", xScale(i))
+              .attr("y2", height - margin.bottom - 100)
+              .attr("stroke", "rgba(255, 255, 255, 0.2)")
+              .attr("stroke-dasharray", "5,5");
+            const labels = { 0: "0", [Math.PI / 2]: "π/2", [Math.PI]: "π", [3 * Math.PI / 2]: "3π/2", [2 * Math.PI]: "2π" };
+            if (labels[i]) {
+              xGrid.append("text")
+                .attr("x", xScale(i))
+                .attr("y", circleY + radius + 20)
+                .attr("fill", "white")
+                .attr("text-anchor", "middle")
+                .text(labels[i]);
+            }
+          }
+          for (let i = -1; i <= 1; i += 0.5) {
+            yGrid.append("line")
+              .attr("x1", margin.left)
+              .attr("y1", yScale(i))
+              .attr("x2", width - margin.right)
+              .attr("y2", yScale(i))
+              .attr("stroke", "rgba(255, 255, 255, 0.2)")
+              .attr("stroke-dasharray", "5,5");
+            if (i !== 0) {
+              yGrid.append("text")
+                .attr("x", margin.left + 15)
+                .attr("y", yScale(i))
+                .attr("fill", "white")
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .text(i);
+            }
+          }
+
+          // Axes
+          svg.append("line")
+            .attr("x1", margin.left)
+            .attr("y1", circleY)
+            .attr("x2", width - margin.right)
+            .attr("y2", circleY)
+            .attr("stroke", "white")
+            .attr("stroke-width", 2);
+          svg.append("line")
+            .attr("x1", circleX)
+            .attr("y1", margin.top)
+            .attr("x2", circleX)
+            .attr("y2", height - margin.bottom - 100)
+            .attr("stroke", "white")
+            .attr("stroke-width", 2);
+
+          // Unit circle
+          svg.append("circle")
+            .attr("cx", circleX)
+            .attr("cy", circleY)
+            .attr("r", radius)
+            .attr("fill", "none")
+            .attr("stroke", "rgba(255, 255, 255, 0.5)")
+            .attr("stroke-width", 1);
+
+          // Current point
+          const x = circleX + radius * Math.cos(theta);
+          const y = circleY - radius * Math.sin(theta);
+
+          // Curves
+          const sinPoints = [];
+          const cosPoints = [];
+          const cnPoints = [];
+          for (let t = 0; t <= 2 * Math.PI; t += 0.01) {
+            sinPoints.push({ x: xScale(t), y: yScale(Math.sin(t)) });
+            cosPoints.push({ x: xScale(t), y: yScale(Math.cos(t)) });
+            cnPoints.push({ x: xScale(t), y: height - margin.bottom - 50 - 50 * calculateCn(t, harmonic) });
+          }
+          const line = d3.line().x(d => d.x).y(d => d.y).curve(d3.curveCardinal);
+          svg.append("path")
+            .datum(sinPoints)
+            .attr("fill", "none")
+            .attr("stroke", "#CCFF00")
+            .attr("stroke-width", 2)
+            .attr("d", line);
+          svg.append("path")
+            .datum(cosPoints)
+            .attr("fill", "none")
+            .attr("stroke", "#FF9966")
+            .attr("stroke-width", 2)
+            .attr("d", line);
+          svg.append("path")
+            .datum(cnPoints)
+            .attr("fill", "none")
+            .attr("stroke", coherenceStatus === 'Sufficient' ? "#00FF00" : "#00CCFF")
+            .attr("stroke-width", 2)
+            .attr("d", line);
+
+          // Threshold line
+          svg.append("line")
+            .attr("x1", xScale(0))
+            .attr("y1", height - margin.bottom - 50 - 50 * THRESHOLD)
+            .attr("x2", xScale(2 * Math.PI))
+            .attr("y2", height - margin.bottom - 50 - 50 * THRESHOLD)
+            .attr("stroke", "red")
+            .attr("stroke-dasharray", "5,5");
+
+          // Trails
+          const trailLine = d3.line().x(d => d.x).y(d => d.y).curve(d3.curveCardinal);
+          svg.append("path")
+            .datum(sinTrail)
+            .attr("fill", "none")
+            .attr("stroke", "#CCFF00")
+            .attr("stroke-width", 1)
+            .attr("stroke-opacity", 0.5)
+            .attr("d", trailLine);
+          svg.append("path")
+            .datum(cosTrail)
+            .attr("fill", "none")
+            .attr("stroke", "#FF9966")
+            .attr("stroke-width", 1)
+            .attr("stroke-opacity", 0.5)
+            .attr("d", trailLine);
+
+          // Markers
+          svg.append("circle")
+            .attr("cx", xScale(theta))
+            .attr("cy", yScale(Math.sin(theta)))
+            .attr("r", 5)
+            .attr("fill", "#CCFF00");
+          svg.append("circle")
+            .attr("cx", xScale(theta))
+            .attr("cy", yScale(Math.cos(theta)))
+            .attr("r", 5)
+            .attr("fill", "#FF9966");
+
+          // Circle point
+          svg.append("circle")
+            .attr("cx", x)
+            .attr("cy", y)
+            .attr("r", 5)
+            .attr("fill", "white");
+          svg.append("line")
+            .attr("x1", circleX)
+            .attr("y1", circleY)
+            .attr("x2", x)
+            .attr("y2", y)
+            .attr("stroke", "white")
+            .attr("stroke-width", 1);
+
+          // Projections
+          svg.append("line")
+            .attr("x1", circleX)
+            .attr("y1", circleY)
+            .attr("x2", x)
+            .attr("y2", circleY)
+            .attr("stroke", "#FF9966")
+            .attr("stroke-width", 2);
+          svg.append("line")
+            .attr("x1", xScale(theta))
+            .attr("y1", yScale(Math.cos(theta)))
+            .attr("x2", xScale(theta))
+            .attr("y2", circleY)
+            .attr("stroke", "#FF9966")
+            .attr("stroke-dasharray", "3,3")
+            .attr("stroke-width", 1);
+          svg.append("line")
+            .attr("x1", circleX)
+            .attr("y1", circleY)
+            .attr("x2", circleX)
+            .attr("y2", y)
+            .attr("stroke", "#CCFF00")
+            .attr("stroke-width", 2);
+          svg.append("line")
+            .attr("x1", xScale(theta))
+            .attr("y1", yScale(Math.sin(theta)))
+            .attr("x2", xScale(theta))
+            .attr("y2", circleY)
+            .attr("stroke", "#CCFF00")
+            .attr("stroke-dasharray", "3,3")
+            .attr("stroke-width", 1);
+
+          // Cn value
+          const cnValue = calculateCn(theta, harmonic);
+          const cnY = height - margin.bottom - 50 - 50 * cnValue;
+          svg.append("line")
+            .attr("x1", xScale(theta))
+            .attr("y1", height - margin.bottom - 100)
+            .attr("x2", xScale(theta))
+            .attr("y2", cnY)
+            .attr("stroke", "#00CCFF")
+            .attr("stroke-width", 1);
+          svg.append("circle")
+            .attr("cx", xScale(theta))
+            .attr("cy", cnY)
+            .attr("r", 5)
+            .attr("fill", coherenceStatus === 'Sufficient' ? "#00FF00" : "#00CCFF");
+
+          // Vertical line
+          svg.append("line")
+            .attr("x1", xScale(theta))
+            .attr("y1", margin.top)
+            .attr("x2", xScale(theta))
+            .attr("y2", height - margin.bottom - 100)
+            .attr("stroke", "white")
+            .attr("stroke-width", 1);
+
+          // Titles
+          svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", margin.top + 20)
+            .attr("text-anchor", "middle")
+            .attr("fill", "#FF9966")
+            .attr("font-size", "24px")
+            .text("Cos(θ)");
+          svg.append("text")
+            .attr("x", width / 2 + 80)
+            .attr("y", margin.top + 20)
+            .attr("text-anchor", "middle")
+            .attr("fill", "#CCFF00")
+            .attr("font-size", "24px")
+            .text("Sin(θ)");
+          svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height - margin.bottom - 80)
+            .attr("text-anchor", "middle")
+            .attr("fill", "#00CCFF")
+            .attr("font-size", "16px")
+            .text("Resonance Field Global Coherence Index (Cn)");
+
+          // Legend
+          svg.append("circle")
+            .attr("cx", width / 2 - 30)
+            .attr("cy", margin.top + 50)
+            .attr("r", 5)
+            .attr("fill", "#FF9966");
+          svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", margin.top + 55)
+            .attr("fill", "#FF9966")
+            .attr("text-anchor", "start")
+            .text("Cos(θ)");
+          svg.append("circle")
+            .attr("cx", width / 2 + 80)
+            .attr("cy", margin.top + 50)
+            .attr("r", 5)
+            .attr("fill", "#CCFF00");
+          svg.append("text")
+            .attr("x", width / 2 + 110)
+            .attr("y", margin.top + 55)
+            .attr("fill", "#CCFF00")
+            .attr("text-anchor", "start")
+            .text("Sin(θ)");
+          svg.append("circle")
+            .attr("cx", width / 2 - 30)
+            .attr("cy", margin.top + 80)
+            .attr("r", 5)
+            .attr("fill", coherenceStatus === 'Sufficient' ? "#00FF00" : "#00CCFF");
+          svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", margin.top + 85)
+            .attr("fill", coherenceStatus === 'Sufficient' ? "#00FF00" : "#00CCFF")
+            .attr("text-anchor", "start")
+            .text("Cn");
+
+          // Values
+          svg.append("text")
+            .attr("x", width - margin.right - 150)
+            .attr("y", margin.top + 100)
+            .attr("fill", "white")
+            .attr("text-anchor", "start")
+            .text(`θ: ${theta.toFixed(2)}`);
+          svg.append("text")
+            .attr("x", width - margin.right - 150)
+            .attr("y", margin.top + 130)
+            .attr("fill", "#FF9966")
+            .attr("text-anchor", "start")
+            .text(`cos(θ): ${Math.cos(theta).toFixed(2)}`);
+          svg.append("text")
+            .attr("x", width - margin.right - 150)
+            .attr("y", margin.top + 160)
+            .attr("fill", "#CCFF00")
+            .attr("text-anchor", "start")
+            .text(`sin(θ): ${Math.sin(theta).toFixed(2)}`);
+          svg.append("text")
+            .attr("x", width - margin.right - 150)
+            .attr("y", margin.top + 190)
+            .attr("fill", coherenceStatus === 'Sufficient' ? "#00FF00" : "#00CCFF")
+            .attr("text-anchor", "start")
+            .text(`Cn(θ): ${cnValue.toFixed(2)}`);
+          svg.append("text")
+            .attr("x", width - margin.right - 150)
+            .attr("y", margin.top + 220)
+            .attr("fill", coherenceStatus === 'Sufficient' ? "#00FF00" : "red")
+            .attr("text-anchor", "start")
+            .text(`Status: ${coherenceStatus}`);
+
+          // Angle arc
+          const arcRadius = 40;
+          const endAngle = theta > 0 ? theta : 2 * Math.PI + theta;
+          const arc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(arcRadius)
+            .startAngle(0)
+            .endAngle(-endAngle);
+          svg.append("path")
+            .attr("d", arc)
+            .attr("fill", "rgba(255, 255, 255, 0.2)")
+            .attr("transform", `translate(${circleX}, ${circleY})`);
+        } catch (e) {
+          console.error('Error in SVG rendering:', e);
+        }
+      }, [theta, harmonic, coherenceStatus, sinTrail, cosTrail]);
+
+      const togglePlay = () => setIsPlaying(!isPlaying);
+      const handleHarmonicChange = (e) => {
+        try {
+          const newHarmonic = parseInt(e.target.value);
+          setHarmonic(newHarmonic);
+          const cnValue = calculateCn(theta, newHarmonic);
+          applyFeedbackCorrection(cnValue, newHarmonic);
+        } catch (e) {
+          console.error('Error in handleHarmonicChange:', e);
+        }
+      };
+
+      return (
+        <div className="flex flex-col items-center bg-black text-white p-4">
+          <svg ref={svgRef} width={width} height={height} className="mb-4"></svg>
+          <div className="flex space-x-4">
+            <button
+              onClick={togglePlay}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            >
+              {isPlaying ? "Pause" : "Play"}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max={2 * Math.PI}
+              step="0.01"
+              value={theta}
+              onChange={(e) => {
+                try {
+                  setIsPlaying(false);
+                  const newTheta = parseFloat(e.target.value);
+                  setTheta(newTheta);
+                  const cnValue = calculateCn(newTheta, harmonic);
+                  applyFeedbackCorrection(cnValue, harmonic);
+                } catch (e) {
+                  console.error('Error in theta change:', e);
+                }
+              }}
+              className="w-64"
+            />
+          </div>
+          <div className="mt-4 flex items-center space-x-2">
+            <span>Resonance Field Harmonic (n):</span>
+            <input
+              type="range"
+              min="1"
+              max={MAX_HARMONIC}
+              value={harmonic}
+              onChange={handleHarmonicChange}
+              className="w-40"
+            />
+            <span>{harmonic}</span>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(
+      <ErrorBoundary>
+        <TrigAnimation />
+      </ErrorBoundary>,
+      document.getElementById('root')
+    );
+  </script>
+</body>
+</html>
