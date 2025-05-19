@@ -123,4 +123,3 @@ This project is licensed under the MIT License. See the LICENSE file for details
 Acknowledgments
 Inspired by the interplay between classical electrical circuits and quantum mechanics, with visualizations designed to support education in quantum computing and circuit theory.
 
-
