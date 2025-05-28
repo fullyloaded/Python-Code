@@ -1,0 +1,80 @@
+<div className="w-full max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+  <div className="mb-6">
+    <h2 className="text-2xl font-bold text-gray-800 mb-3">Taiwan Influence Dynamics Simulation</h2>
+    <p className="text-gray-600 text-sm mb-4">
+      Simulates influence flows in Taiwan under U.S.-China competition, with interactions involving other international actors (e.g., Japan, EU) and crisis scenarios like cross-strait tensions.
+    </p>
+  </div>
+
+  <div className="mb-4 flex gap-4 flex-wrap">
+    <button onClick={toggleAnimation} className={`px-6 py-2 rounded font-semibold transition-colors ${isPlaying ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}>
+      {isPlaying ? 'Pause Animation' : 'Start Animation'}
+    </button>
+    <button onClick={triggerCrisis} className={`px-6 py-2 rounded font-semibold transition-colors ${crisis ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}>
+      {crisis ? 'Stop φ₃ Crisis' : 'Trigger φ₃ Crisis'}
+    </button>
+    <button onClick={startRecording} disabled={isRecording} className={`px-6 py-2 rounded font-semibold transition-colors ${isRecording ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
+      {isRecording ? `Recording... ${recordingProgress}%` : '📹 Export Video (10s)'}
+    </button>
+    {isRecording && (
+      <button onClick={stopRecording} className="px-6 py-2 rounded font-semibold bg-red-600 hover:bg-red-700 text-white">
+        Stop Recording
+      </button>
+    )}
+  </div>
+
+  {isRecording && (
+    <div className="mb-4">
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="bg-purple-600 h-2 rounded-full transition-all duration-100" style={{ width: `${recordingProgress}%` }}></div>
+      </div>
+      <p className="text-sm text-gray-600 mt-1">Recording progress: {recordingProgress}% (will auto-stop and download)</p>
+    </div>
+  )}
+
+  <div className="border rounded-lg overflow-hidden relative">
+    <svg ref={svgRef} className="w-full"></svg>
+    <canvas ref={canvasRef} className="absolute top-0 left-0 pointer-events-none" style={{ display: isRecording ? 'block' : 'none', opacity: 0.1 }} />
+  </div>
+
+  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+    <div className="bg-blue-50 p-4 rounded border-l-4 border-blue-500">
+      <h3 className="font-semibold text-blue-800 mb-2">φ₁ - 美國</h3>
+      <p className="text-blue-700">Provides military support (e.g., arms sales), economic ties, and diplomatic backing to Taiwan; cooperates with Japan, EU.</p>
+    </div>
+    <div className="bg-orange-50 p-4 rounded border-l-4 border-orange-500">
+      <h3 className="font-semibold text-orange-800 mb-2">φ₂ - 中國</h3>
+      <p className="text-orange-700">Exerts economic pressure and diplomatic influence on Taiwan; competes with U.S. and other actors.</p>
+    </div>
+    <div className="bg-green-50 p-4 rounded border-l-4 border-green-500">
+      <h3 className="font-semibold text-green-800 mb-2">φ₃ - 台灣</h3>
+      <p className="text-green-700">Focal point of U.S.-China rivalry, with high-tech economy and strategic importance; unstable during crises.</p>
+    </div>
+    <div className="bg-red-50 p-4 rounded border-l-4 border-red-500">
+      <h3 className="font-semibold text-red-800 mb-2">φ₄ - 其他國際行為者</h3>
+      <p className="text-red-700">Includes Japan (tech cooperation), EU (trade ties); cooperates with U.S., competes with China.</p>
+    </div>
+  </div>
+
+  <div className="mt-4 bg-gray-50 p-4 rounded">
+    <h3 className="font-semibold text-gray-800 mb-2">Animation Effects Explanation:</h3>
+    <ul className="text-sm text-gray-700 space-y-1">
+      <li>• <strong>Normal State:</strong> Influence flows dynamically, with Taiwan balancing U.S. support, Chinese pressure, and cooperation with Japan, EU.</li>
+      <li>• <strong>φ₃ Crisis State:</strong> Taiwan faces instability (e.g., cross-strait tensions), causing influence outflows and vacuum bubbles.</li>
+      <li>• <strong>Vacuum Bubble Effect:</strong> Red circles indicate areas where Taiwan's influence (e.g., economic or diplomatic) suddenly vanishes.</li>
+      <li>• <strong>Competitive Interactions:</strong> U.S. and China compete intensely for Taiwan's influence; U.S. cooperates with Japan, EU.</li>
+      <li>• <strong>Video Export:</strong> Record 10 seconds of animation to visualize Taiwan's influence dynamics.</li>
+    </ul>
+  </div>
+
+  <div className="mt-4 bg-blue-50 p-4 rounded border-l-4 border-blue-500">
+    <h3 className="font-semibold text-blue-800 mb-2">📹 Video Export Feature Guide:</h3>
+    <ul className="text-sm text-blue-700 space-y-1">
+      <li>• Click "Export Video" to record a 10-second animation of Taiwan's influence dynamics.</li>
+      <li>• Supports modern browsers like Chrome, Firefox.</li>
+      <li>• Auto-generates WebM format video for download.</li>
+      <li>• Trigger φ₃ crisis before recording to capture full crisis effects.</li>
+      <li>• Use online tools to convert WebM to GIF or MP4 if needed.</li>
+    </ul>
+  </div>
+</div>
