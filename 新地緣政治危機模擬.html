@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地緣政治危機模擬</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" onload="initWhenReady()" onerror="handleD3Error()"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:focus {
+            outline: 2px solid #00d4ff;
+            outline-offset: 2px;
+        }
+        
+        .btn-crisis {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+        }
+        
+        .btn-crisis:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+        }
+        
+        .btn-normal {
+            background: linear-gradient(45deg, #00ff88, #00cc66);
+            color: #0f0f23;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn-normal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .btn-reset {
+            background: linear-gradient(45deg, #6666ff, #4444cc);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 102, 255, 0.3);
+        }
+        
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 102, 255, 0.4);
+        }
+        
+        .simulation-area {
+            position: relative;
+            width: 100%;
+            height: 60vh;
+            max-height: 600px;
+            min-height: 400px;
+            background: radial-gradient(circle at center, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+        
+        .stability-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .stability-fill {
+            height: 100%;
+            transition: all 0.5s ease;
+            border-radius: 4px;
+        }
+        
+        .particle {
+            cursor: pointer;
+        }
+        
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            fill: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .vacuum-bubble {
+            fill: none;
+            stroke: #ff4444;
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+            opacity: 0.7;
+        }
+        
+        .interaction-line {
+            stroke: #00d4ff;
+            stroke-opacity: 0.5;
+            transition: stroke-width 0.5s ease, opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌏 地緣政治危機模擬系統</h1>
+        
+        <div class="controls">
+            <button class="btn btn-crisis" onclick="triggerCrisis()" aria-label="觸發地緣政治危機">觸發危機</button>
+            <button class="btn btn-normal" onclick="normalState()" aria-label="恢復正常狀態">恢復正常</button>
+            <button class="btn btn-reset" onclick="resetSimulation()" aria-label="重置模擬系統">重置模擬</button>
+        </div>
+        
+        <div class="simulation-area">
+            <svg id="simulation" width="100%"></svg>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-card">
+                <div class="status-title">🇺🇸 美國 (φ₁)</div>
+                <div>穩定度: <span id="usa-stability">90%</span></div>
+                <div class="stability-bar"><div class="stability-fill" id="usa-bar" style="background: linear-gradient(90deg, #4169E1, #1E90FF);"></div></div>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-title">🇨🇳 中國 (φ₂)</div>
+                <div>穩定度: <span id="china-stability">90%</span></div>
+                <div class="stability-bar"><div class="stability-fill" id="china-bar" style="background: linear-gradient(90deg, #DC143C, #B22222);"></div></div>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-title">🏝️ 太平洋島鏈 (φ₃)</div>
+                <div>穩定度: <span id="pacific-stability">70%</span></div>
+                <div class="stability-bar"><div class="stability-fill" id="pacific-bar" style="background: linear-gradient(90deg, #32CD32, #228B22);"></div></div>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-title">📊 系統狀態</div>
+                <div>危機強度: <span id="crisis-intensity">0%</span></div>
+                <div>互動抵銷: <span id="interaction-strength">0%</span></div>
+                <div>活躍粒子: <span id="particle-count">50</span></div>
+                <div>真空泡泡: <span id="bubble-count">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let svg, width, height;
+        let fields = [];
+        let particles = [];
+        let fieldCircles;
+        let simulation;
+        let isCrisis = false;
+        let crisisIntensity = 0;
+        let interactionStrength = 0;
+        let vacuumBubbles = [];
+        let animationId;
+        let bubbleIdCounter = 0;
+        let interactionLines = [];
+
+        function handleD3Error() {
+            console.warn('D3.js from CDN failed, attempting local fallback');
+            const script = document.createElement('script');
+            script.src = 'd3.min.js';
+            script.onload = initWhenReady;
+            script.onerror = () => {
+                console.error('All D3.js sources failed');
+                showErrorMessage('無法載入 D3.js 庫，請檢查網絡連接並重新整理');
+            };
+            document.head.appendChild(script);
+        }
+
+        function initWhenReady() {
+            try {
+                if (typeof d3 === 'undefined') {
+                    console.error('D3.js not loaded');
+                    showErrorMessage('D3.js 庫未載入，請檢查網絡連接');
+                    return;
+                }
+                init();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showErrorMessage('無法初始化模擬系統：' + error.message);
+            }
+        }
+
+        function showErrorMessage(message = '模擬系統載入失敗，請重新整理頁面') {
+            document.body.innerHTML = `
+                <div style="text-align: center; padding: 50px; color: white;">
+                    <h2>⚠️ 系統錯誤</h2>
+                    <p>${message}</p>
+                    <button class="btn btn-reset" onclick="location.reload()">重新整理</button>
+                </div>
+            `;
+        }
+
+        function init() {
+            try {
+                svg = d3.select("#simulation");
+                const container = document.getElementById('simulation').parentElement;
+                if (!container) throw new Error('Simulation container not found');
+                width = container.clientWidth || 800;
+                height = Math.min(container.clientHeight || window.innerHeight * 0.6, 600);
+                
+                svg.attr("width", width).attr("height", height);
+                
+                setupGradients();
+                setupFields();
+                setupParticles();
+                setupSimulation();
+                startAnimation();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showErrorMessage('無法初始化模擬系統：' + error.message);
+            }
+        }
+
+        function setupGradients() {
+            const defs = svg.append("defs");
+            
+            const usaGradient = defs.append("radialGradient")
+                .attr("id", "usaGradient");
+            usaGradient.append("stop").attr("offset", "0%").attr("stop-color", "#4169E1").attr("stop-opacity", 0.8);
+            usaGradient.append("stop").attr("offset", "100%").attr("stop-color", "#1E90FF").attr("stop-opacity", 0.2);
+            
+            const chinaGradient = defs.append("radialGradient")
+                .attr("id", "chinaGradient");
+            chinaGradient.append("stop").attr("offset", "0%").attr("stop-color", "#DC143C").attr("stop-opacity", 0.8);
+            chinaGradient.append("stop").attr("offset", "100%").attr("stop-color", "#B22222").attr("stop-opacity", 0.2);
+            
+            const picGradient = defs.append("radialGradient")
+                .attr("id", "picGradient");
+            picGradient.append("stop").attr("offset", "0%").attr("stop-color", "#32CD32").attr("stop-opacity", 0.8);
+            picGradient.append("stop").attr("offset", "100%").attr("stop-color", "#228B22").attr("stop-opacity", 0.2);
+            
+            const instabilityGradient = defs.append("radialGradient")
+                .attr("id", "instabilityGradient");
+            instabilityGradient.append("stop").attr("offset", "0%").attr("stop-color", "#FF4444").attr("stop-opacity", 0.9);
+            instabilityGradient.append("stop").attr("offset", "100%").attr("stop-color", "#CC0000").attr("stop-opacity", 0.1);
+        }
+
+        function setupFields() {
+            fields = [
+                { name: "美國", x: width * 0.25, y: height * 0.4, baseRadius: 80, stability: 0.9, gradient: "usaGradient", prevWidth: width, prevHeight: height, interactionFactor: 0.8 },
+                { name: "中國", x: width * 0.75, y: height * 0.4, baseRadius: 80, stability: 0.9, gradient: "chinaGradient", prevWidth: width, prevHeight: height, interactionFactor: 0.8 },
+                { name: "太平洋島鏈", x: width * 0.5, y: height * 0.6, baseRadius: 60, stability: 0.7, gradient: "picGradient", prevWidth: width, prevHeight: height, interactionFactor: 0.2 },
+                { name: "其他區域", x: width * 0.5, y: height * 0.2, baseRadius: 50, stability: 0.6, gradient: "picGradient", prevWidth: width, prevHeight: height, interactionFactor: 0.2 }
+            ];
+            
+            fieldCircles = svg.selectAll(".field").data([]).exit().remove();
+            fieldCircles = svg.selectAll(".field")
+                .data(fields)
+                .enter()
+                .append("g")
+                .attr("class", (d, i) => `field field-${i === 2 ? 'pacific' : 'other'}`);
+            
+            fieldCircles.append("circle")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", d => d.baseRadius)
+                .attr("fill", d => `url(#${d.gradient})`)
+                .attr("stroke", "rgba(255,255,255,0.3)")
+                .attr("stroke-width", 2);
+            
+            fieldCircles.append("text")
+                .attr("class", "field-label")
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 5)
+                .text(d => d.name);
+
+            interactionLines = [
+                { source: fields[0], target: fields[2], strength: 0 },
+                { source: fields[1], target: fields[2], strength: 0 }
+            ];
+            
+            svg.selectAll(".interaction-line")
+                .data(interactionLines)
+                .enter()
+                .append("line")
+                .attr("class", "interaction-line")
+                .attr("stroke", "#00d4ff")
+                .attr("stroke-width", d => d.strength * 5)
+                .attr("opacity", 0.5)
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+        }
+
+        function setupParticles() {
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    radius: Math.random() * 3 + 2,
+                    color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+                    prevWidth: width,
+                    prevHeight: height
+                });
+            }
+        }
+
+        function setupSimulation() {
+            try {
+                svg.selectAll(".particle").remove();
+                
+                svg.selectAll(".particle")
+                    .data(particles)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "particle")
+                    .attr("r", d => d.radius)
+                    .attr("fill", d => d.color)
+                    .attr("opacity", 0.8)
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y)
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).attr("opacity", 1).attr("r", d.radius * 1.5);
+                    })
+                    .on("mouseout", function(event, d) {
+                        d3.select(this).attr("opacity", 0.8).attr("r", d.radius);
+                    });
+            } catch (error) {
+                console.error('Setup simulation error:', error);
+                showErrorMessage('無法設置模擬：' + error.message);
+            }
+        }
+
+        function updateSimulation() {
+            try {
+                const targetIntensity = isCrisis ? 1.0 : 0.0;
+                crisisIntensity += (targetIntensity - crisisIntensity) * 0.05;
+                const targetInteractionStrength = isCrisis ? 1.0 : 0.0;
+                interactionStrength += (targetInteractionStrength - interactionStrength) * 0.05;
+
+                particles.forEach(p => {
+                    let fx = 0, fy = 0;
+                    
+                    fields.forEach((field, index) => {
+                        const dx = field.x - p.x;
+                        const dy = field.y - p.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 0) {
+                            const force = field.stability * 0.1 / (dist * 0.01 + 1);
+                            fx += dx * force / dist;
+                            fy += dy * force / dist;
+                        }
+
+                        if (index === 2 && (isCrisis || crisisIntensity > 0.01)) {
+                            const stabilizationForce = calculateInteractionForce(p, field);
+                            fx += stabilizationForce.fx;
+                            fy += stabilizationForce.fy;
+                        }
+                    });
+                    
+                    if (isCrisis || crisisIntensity > 0.01) {
+                        applyCrisisEffects(p);
+                    }
+                    
+                    p.vx += fx * 0.1;
+                    p.vy += fy * 0.1;
+                    p.vx *= 0.95;
+                    p.vy *= 0.95;
+                    
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    
+                    if (p.x < 0 || p.x > width) p.vx *= -0.8;
+                    if (p.y < 0 ||)"; p.vy *= -0.8;
+                    p.x = Math.max(0, Math.min(width, p.x));
+                    p.y = Math.max(0, Math.min(height, p.y));
+                });
+                
+                svg.selectAll(".particle")
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+                
+                updateInteractionLines();
+                updateFieldVisuals();
+                updateStatusPanel();
+                updateVacuumBubbles();
+            } catch (error) {
+                console.error('Update simulation error:', error);
+                showErrorMessage('模擬更新失敗：' + error.message);
+            }
+        }
+
+        function calculateInteractionForce(particle, targetField) {
+            let fx = 0, fy = 0;
+            const pacificField = fields[2];
+            
+            [fields[0], fields[1]].forEach(sourceField => {
+                const dx = targetField.x - particle.x;
+                const dy = targetField.y - particle.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < pacificField.baseRadius * 3) {
+                    const stabilityDiff = sourceField.stability - targetField.stability;
+                    const interactionForce = interactionStrength * sourceField.interactionFactor * stabilityDiff / (dist * 0.01 + 1);
+                    fx += dx * interactionForce / dist;
+                    fy += dy * interactionForce / dist;
+                }
+            });
+            
+            return { fx, fy };
+        }
+
+        function updateInteractionLines() {
+            interactionLines.forEach(line => {
+                const stabilityDiff = line.source.stability - line.target.stability;
+                line.strength = interactionStrength * stabilityDiff * 0.5;
+            });
+            
+            svg.selectAll(".interaction-line")
+                .data(interactionLines)
+                .attr("stroke-width", d => Math.max(0, d.strength * 5))
+                .attr("opacity", d => Math.min(0.8, d.strength * 2))
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+        }
+
+        function updateFieldVisuals() {
+            if (isCrisis || crisisIntensity > 0.01) {
+                fields[0].stability = Math.max(0.7, 0.9 - 0.1 * crisisIntensity - 0.05 * interactionStrength);
+                fields[1].stability = Math.max(0.7, 0.9 - 0.1 * crisisIntensity - 0.05 * interactionStrength);
+                fields[2].stability = Math.max(0.4, 0.7 - 0.2 * crisisIntensity + 0.1 * interactionStrength);
+            } else {
+                fields[0].stability = 0.9;
+                fields[1].stability = 0.9;
+                fields[2].stability = 0.7;
+            }
+            
+            const picField = fieldCircles.filter((d, i) => i === 2);
+            if (isCrisis || crisisIntensity > 0.01) {
+                const pulseRadius = Math.sin(Date.now() * 0.002) * 5;
+                picField.select('circle')
+                    .attr('fill', 'url(#instabilityGradient)')
+                    .attr('r', d => d.baseRadius + pulseRadius);
+            } else {
+                picField.select('circle')
+                    .attr('fill', 'url(#picGradient)')
+                    .attr('r', d => d.baseRadius);
+            }
+        }
+
+        function createVacuumBubble(x, y, radius) {
+            const bubble = {
+                x: x,
+                y: y,
+                radius: radius,
+                maxRadius: radius * 2,
+                opacity: 1,
+                id: `bubble-${bubbleIdCounter++}`
+            };
+            
+            vacuumBubbles.push(bubble);
+            
+            svg.append("circle")
+                .attr("class", `vacuum-bubble ${bubble.id}`)
+                .attr("cx", x)
+                .attr("cy", y)
+                .attr("r", 0)
+                .transition()
+                .duration(2000)
+                .attr("r", radius)
+                .attr("opacity", 0)
+                .on("end", () => {
+                    svg.select(`.${bubble.id}`).remove();
+                    vacuumBubbles = vacuumBubbles.filter(b => b.id !== bubble.id);
+                });
+        }
+
+        function updateVacuumBubbles() {
+            // Handled by D3 transitions
+        }
+
+        function updateStatusPanel() {
+            document.getElementById('usa-stability').textContent = Math.round(fields[0].stability * 100) + '%';
+            document.getElementById('china-stability').textContent = Math.round(fields[1].stability * 100) + '%';
+            document.getElementById('pacific-stability').textContent = Math.round(fields[2].stability * 100) + '%';
+            document.getElementById('crisis-intensity').textContent = Math.round(crisisIntensity * 100) + '%';
+            document.getElementById('interaction-strength').textContent = Math.round(interactionStrength * 100) + '%';
+            document.getElementById('particle-count').textContent = particles.length;
+            document.getElementById('bubble-count').textContent = vacuumBubbles.length;
+            
+            document.getElementById('usa-bar').style.width = (fields[0].stability * 100) + '%';
+            document.getElementById('china-bar').style.width = (fields[1].stability * 100) + '%';
+            document.getElementById('pacific-bar').style.width = (fields[2].stability * 100) + '%';
+        }
+
+        function startAnimation() {
+            function animate() {
+                try {
+                    if (crisisIntensity > 0.01 || particles.some(p => Math.abs(p.vx) > 0.01 || Math.abs(p.vy) > 0.01)) {
+                        updateSimulation();
+                    }
+                    animationId = requestAnimationFrame(animate);
+                } catch (error) {
+                    console.error('Animation loop error:', error);
+                    cancelAnimationFrame(animationId);
+                    showErrorMessage('動畫循環失敗：' + error.message);
+                }
+            }
+            animate();
+        }
+
+        function triggerCrisis() {
+            try {
+                isCrisis = true;
+            } catch (error) {
+                console.error('Trigger crisis error:', error);
+                showErrorMessage('無法觸發危機：' + error.message);
+            }
+        }
+
+        function normalState() {
+            try {
+                isCrisis = false;
+            } catch (error) {
+                console.error('Normal state error:', error);
+                showErrorMessage('無法恢復正常：' + error.message);
+            }
+        }
+
+        function resetSimulation() {
+            try {
+                isCrisis = false;
+                crisisIntensity = 0;
+                interactionStrength = 0;
+                vacuumBubbles = [];
+                svg.selectAll('.vacuum-bubble').remove();
+                svg.selectAll('.interaction-line').attr('stroke-width', 0);
+                setupParticles();
+                setupSimulation();
+            } catch (error) {
+                console.error('Reset simulation error:', error);
+                showErrorMessage('無法重置模擬：' + error.message);
+            }
+        }
+
+        function applyCrisisEffects(p) {
+            const picField = fields[2];
+            const dx = picField.x - p.x;
+            const dy = picField.y - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < picField.baseRadius * 3) {
+                const repulsion = (0.5 * crisisIntensity * (1 - interactionStrength)) / (dist + 1);
+                p.vx -= dx * repulsion * 0.1;
+                p.vy -= dy * repulsion * 0.1;
+                
+                if (Math.random() < 0.02 * crisisIntensity * (1 - interactionStrength)) {
+                    createVacuumBubble(p.x, p.y, 15 + Math.random() * 20);
+                }
+                
+                p.vx += (Math.random() - 0.5) * 0.2 * crisisIntensity * (1 - interactionStrength);
+                p.vy += (Math.random() - 0.5) * 0.2 * crisisIntensity * (1 - interactionStrength);
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function safeAddEventListener() {
+            try {
+                window.addEventListener('load', () => setTimeout(initWhenReady, 100));
+                window.addEventListener('resize', debounce(() => {
+                    try {
+                        const container = document.getElementById('simulation').parentElement;
+                        width = container.clientWidth || 800;
+                        height = Math.min(container.clientHeight || window.innerHeight * 0.6, 600);
+                        svg.attr("width", width).attr("height", height);
+                        fields.forEach(field => {
+                            field.x = field.x * (width / field.prevWidth || width);
+                            field.y = field.y * (height / field.prevHeight || height);
+                            field.prevWidth = width;
+                            field.prevHeight = height;
+                        });
+                        particles.forEach(p => {
+                            p.x = p.x * (width / p.prevWidth || width);
+                            p.y = p.y * (height / p.prevHeight || height);
+                            p.prevWidth = width;
+                            p.prevHeight = height;
+                        });
+                        setupFields();
+                        setupSimulation();
+                    } catch (error) {
+                        console.error('Window resize error:', error);
+                        showErrorMessage('視窗調整失敗：' + error.message);
+                    }
+                }, 200));
+            } catch (error) {
+                console.error('Event listener error:', error);
+                setTimeout(initWhenReady, 500);
+            }
+        }
+
+        safeAddEventListener();
+    </script>
+</body>
+</html>
